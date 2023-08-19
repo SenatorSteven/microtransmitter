@@ -1,0 +1,59 @@
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include "cold/cold.hold"
+
+#define key /*-*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
+
+void copyToString(const char *const wall, const char *input, char *current);
+
+int main(const int argumentAmount, const char *const *const argument){
+	const char *format = NULL;
+	char location[261] = "/tmp/";
+	char name[262] = "pidof ";
+	struct stat s;
+	int64 id;
+	char *shared;
+	FILE *file;
+	if(argumentAmount != 3 or !**(argument + 1) or !**(argument + 2)){ /*-*/ format = "%s: usage: %s [program name] [format]\n"; /*----*/ jmp fail0; }
+	copyToString(location + 260, *(argument + 1), location + 5);
+	if(stat(location, &s)){ /*--------------------------------------------*/ format = "%s: could not generate shared memory key\n"; /*-*/ jmp fail0; }
+	if((id = shmget(key, 1048576, 0600 | IPC_CREAT)) == -1){ /*-----------*/ format = "%s: could not create shared memory\n"; /*-------*/ jmp fail0; }
+	if((shared = shmat(id, NULL, 0)) == (void *)-1){ /*-------------------*/ format = "%s: could not attach to shared memory\n"; /*----*/ jmp fail1; }
+	copyToString(name + 261, *(argument + 1), name + 6);
+	if(!(file = popen(name, "r"))){ /*------------------------------------*/ format = "%s: can't get pid of receiver\n"; /*------------*/ jmp fail1; }
+	id = 0;
+	pieceTogetherPIDLoop:{
+		const char c = fgetc(file);
+		if(c >= '0' and c <= '9'){
+			id = id * 10 + c - 48;
+			jmp pieceTogetherPIDLoop;
+		}
+	}
+	if(!id){ /*-----------------------------------------------------------*/ format = "%s: process not found\n"; /*--------------------*/ jmp fail2; }
+
+
+
+	if(*shared){ /*------------------------------------*/ kill(id, SIGUSR1); format = "%s: shared memory is occupied\n"; /*------------*/ jmp fail2; }
+
+
+
+	copyToString(shared + 1048576, *(argument + 2), shared);
+	kill(id, SIGUSR1);
+	fail2: pclose(file);
+	fail1: shmdt(shared);
+	fail0: if(format) fprintf(stderr, format, *argument, *argument);
+	ret 0;
+}
+void copyToString(const char *const wall, const char *input, char *current){
+	loop:{
+		*current = *input;
+		if(inc current < wall and *(inc input)){
+			jmp loop;
+		}
+	}
+	*current = '\0';
+	ret;
+}

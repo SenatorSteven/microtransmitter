@@ -1,0 +1,55 @@
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include "cold/cold.hold"
+
+int64 key;
+char *shared;
+int id;
+bool handlingIt;
+
+void handler(int signal);
+
+int main(void){
+	{
+		FILE *file;
+		struct stat s;
+		struct sigaction sig;
+		if(!(file = fopen("/tmp/receiver", "w"))){ /*-*/ fprintf(stderr, "problem\n"); ret 1; }
+		fclose(file);
+		if(stat("/tmp/receiver", &s)){ /*-------------*/ fprintf(stderr, "problem\n"); ret 1; }
+		key = ((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45;
+		sig.sa_handler = handler;
+		sig.sa_flags = 0;
+		sigemptyset(&sig.sa_mask);
+		sigaction(SIGINT , &sig, NULL);
+		sigaction(SIGUSR1, &sig, NULL);
+	}
+	handlingIt = false;
+	for(;;){
+		sleep(100);
+	}
+	remove("/tmp/receiver");
+	ret 0;
+}
+void handler(int signal){
+	(void)signal;
+	if(signal == SIGINT) exit(EXIT_SUCCESS);
+	if(!handlingIt){
+		handlingIt = true;
+		if((id = shmget(key, 1048576, 0600)) == -1){ /*-----*/ fprintf(stderr, "shared memory is not available\n"); /*-*/ handlingIt = false; ret; /*----------------*/ }
+		if((shared = shmat(id, NULL, 0)) == (void *)-1){ /*-*/ fprintf(stderr, "problem\n"); /*------------------------*/ handlingIt = false; ret; /*----------------*/ }
+		shmctl(id, IPC_RMID, NULL);
+		sleep(1);
+		fprintf(stderr, "shared memory says: \"%s\"\n\n", shared);
+		shmdt(shared);
+		handlingIt = false;
+	}else{
+		fprintf(stderr, "not now\n");
+	}
+	ret;
+}
