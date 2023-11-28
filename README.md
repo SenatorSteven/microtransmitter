@@ -1,2 +1,2 @@
 # messenger
-Shared Memory Messenger
+Shared Memory Messenger for micro- programs
