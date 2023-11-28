@@ -1,8 +1,8 @@
-/* cold.hold
+/*! cold.hold
 
 MIT License
 
-Copyright (C) 2022 Stefanos "Steven" Tsakiris
+Copyright (C) 2023 Stefanos "Steven" Tsakiris
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,55 +25,97 @@ SOFTWARE. */
 #ifndef COLD_H
 #define COLD_H
 
-#ifdef errno
-	#define ERRNO /*---------*/ errno
-#endif
+/*!CKeywords:{*/
+	#define typedef /*--*/ typedef
+	#define extern /*---*/ extern
+	#define static /*---*/ static
+	#define auto /*-----*/ auto
+	#define register /*-*/ register
+	#define volatile /*-*/ volatile
+	#define const /*----*/ const
+	#define short /*----*/ short
+	#define long /*-----*/ long
+	#define signed /*---*/ signed
+	#define unsigned /*-*/ unsigned
+	#define void /*-----*/ void
+	#define int /*------*/ int
+	#define char /*-----*/ char
+	#define float /*----*/ float
+	#define double /*---*/ double
+	#define enum /*-----*/ enum
+	#define union /*----*/ union
+	#define struct /*---*/ struct
+	#define sizeof /*---*/ sizeof
+	#define if /*-------*/ if
+	#define else /*-----*/ else
+	#define switch /*---*/ switch
+	#define case /*-----*/ case
+	#define default /*--*/ default
+	#define break /*----*/ break
+	#define do /*-------*/ do
+	#define while /*----*/ while
+	#define for /*------*/ for
+	#define continue /*-*/ continue
+	#define goto /*-----*/ goto
+	#define return /*---*/ return
+/*!}*/
 
-#ifdef L_tmpnam
-	#define L_TMPNAM /*------*/ L_tmpnam
-#endif
-
-#define _COLD_EMPTY_MACRO /*-*/
-
-#define def /*---------------*/ typedef
-#define local /*-------------*/ static
-#define inc /*---------------*/ ++
-#define dec /*---------------*/ --
-#define and /*---------------*/ &&
-#define or /*----------------*/ ||
-#define elif /*--------------*/ else if
-#define to /*----------------*/ case
-#define off /*---------------*/ default
-#define brk /*---------------*/ break
-#define jmp /*---------------*/ goto
-#define ret /*---------------*/ return
-
-
-
-#define decl /*--------------*/ _COLD_EMPTY_MACRO
-#define set /*---------------*/ _COLD_EMPTY_MACRO
-#define call /*--------------*/ _COLD_EMPTY_MACRO
+/*!coldKeywords:{*/
+	#define def /*------*/ typedef
+	#define local /*----*/ static
+	#define inc /*------*/ ++
+	#define dec /*------*/ --
+	#define true /*-----*/ (1)
+	#define false /*----*/ (0)
+	#define and /*------*/ &&
+	#define or /*-------*/ ||
+	#define not /*------*/ !
+	#define elif /*-----*/ else if
+	#define to /*-------*/ case
+	#define off /*------*/ default
+	#define brk /*------*/ break
+	#define jmp /*------*/ goto
+	#define ret /*------*/ return
+/*!}*/
 
 
 
-#define switch /*------------*/ switch(
-#define over /*--------------*/ ){
-#define end /*---------------*/ }
 
 
 
-#define true /*--------------*/ (1)
-#define false /*-------------*/ (0)
 
-def int8_t /*-------*/ int8;
-def int16_t /*------*/ int16;
-def int32_t /*------*/ int32;
-def int64_t /*------*/ int64;
-def unsigned int /*-*/ uint;
-def uint8_t /*------*/ uint8;
-def uint16_t /*-----*/ uint16;
-def uint32_t /*-----*/ uint32;
-def uint64_t /*-----*/ uint64;
-def uint8_t /*------*/ bool;
+
+
+#define EMPTY_MACRO /*-*/
+
+#define decl /*--------*/ EMPTY_MACRO
+#define set /*---------*/ EMPTY_MACRO
+#define call /*--------*/ EMPTY_MACRO
+
+#undef  switch
+#define switch /*------*/ switch(
+#define over /*--------*/ ){
+#define end /*---------*/ }
+
+
+
+
+
+
+
+
+
+/*!defs:{*/
+	def int8_t /*-------*/ int8;
+	def int16_t /*------*/ int16;
+	def int32_t /*------*/ int32;
+	def int64_t /*------*/ int64;
+	def unsigned int /*-*/ uint;
+	def uint8_t /*------*/ uint8;
+	def uint16_t /*-----*/ uint16;
+	def uint32_t /*-----*/ uint32;
+	def uint64_t /*-----*/ uint64;
+	def uint8_t /*------*/ bool;
+/*!}*/
 
 #endif
