@@ -1,2 +1,2 @@
-# messenger
-Shared Memory Messenger for micro- programs
+# microtransmitter
+Inter-process communication messenger for micro- programs, paired with basic receiver
