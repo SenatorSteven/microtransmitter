@@ -28,7 +28,6 @@ DEBUG=true
 
 asm="output/asm"
 files=""
-programName="messenger"
 
 compileFile(){
 	gcc -x c \
@@ -53,14 +52,11 @@ if [ -f compile.sh ]; then
 	fi
 	mkdir output $asm
 	if [ -d $asm ]; then
+		programName="microtransmitter"
 		compileFile $programName
 		gcc $files -o output/$programName
 		files=""
-		programName="receiver"
-		compileFile $programName
-		gcc $files -o output/$programName
-		files=""
-		programName="invader"
+		programName="microreceiver"
 		compileFile $programName
 		gcc $files -o output/$programName
 		if ! $DEBUG; then
