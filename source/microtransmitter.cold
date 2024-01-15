@@ -1,0 +1,183 @@
+/*! microtransmitter.cold
+
+MIT License
+
+Copyright (C) 2023 Stefanos "Steven" Tsakiris
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. */
+
+/*!includes:{*/
+	#include <signal.h>
+	#include <stdint.h>
+	#include <stdio.h>
+	#include <sys/shm.h>
+	#include <sys/stat.h>
+	#include "cold/cold.hold"
+/*!}*/
+
+/*!defines:{*/
+	#define SHM_NONE /*-------------*/ (0)
+
+	#define STAT_FAIL /*------------*/ (-1)
+	#define SHMGET_FAIL /*----------*/ (-1)
+	#define SHMAT_FAIL /*-----------*/ (-1)
+	#define KILL_FAIL /*------------*/ (-1)
+	#define SHMDT_FAIL /*-----------*/ (-1)
+
+	#define SHM_KEY /*--------------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
+	#define SHM_SIZE /*-------------*/ (65536)
+
+	#define COPY() /*---------------*/ local void copy(const char *input, char *current, const char *const wall)
+
+	#define ARRAY_SIZE(a) /*--------*/ (sizeof(a) / sizeof(*a))
+	#define STRING_ARRAY_SIZE(a) /*-*/ (ARRAY_SIZE(a) - 1)
+/*!}*/
+
+/*!functions:{*/
+	COPY();
+/*!}*/
+
+int main(const int argumentAmount, const char *const *const argument){
+	def struct stat /*-*/ Stat;
+	const char *format = NULL;
+	char path[STRING_ARRAY_SIZE("/tmp/") + 256] = "/tmp/";
+	Stat s;
+	FILE *fopenFile = NULL;
+	FILE *popenFile = NULL;
+	FILE *file;
+	bool hindered = false;
+	int64 shmid;
+	uint64 pid;
+	char *shared = NULL;
+	jmp getProgramArguments;
+	getProgramArguments:{
+		if(argumentAmount != 3 or !**(argument + 1) or !**(argument + 2)){
+			format = "%s: usage: %s [program name] [format]\n";
+			jmp emergencyExit;
+		}
+		copy(*(argument + 1), path + STRING_ARRAY_SIZE("/tmp/"), path + STRING_ARRAY_SIZE("/tmp/") + 256);
+		jmp getKeyFileStat;
+	}
+	getKeyFileStat:{
+		if(stat(path, &s) == STAT_FAIL){
+			jmp bruteForceFindPID;
+		}
+		jmp findPID;
+	}
+	bruteForceFindPID:{
+		char pidof[STRING_ARRAY_SIZE("pidof ") + 256] = "pidof ";
+		copy(*(argument + 1), pidof + STRING_ARRAY_SIZE("pidof "), pidof + STRING_ARRAY_SIZE("pidof ") + 256);
+		if(!(popenFile = popen(pidof, "r"))){
+			format = "%s: could not notify receiver of broken protocol\n";
+			jmp emergencyExit;
+		}
+		file = popenFile;
+		pid = 0;
+		hindered = true;
+		jmp pieceTogetherPIDLoop;
+	}
+	findPID:{
+		if(!(fopenFile = fopen(path, "r"))){
+			jmp bruteForceFindPID;
+		}
+		file = fopenFile;
+		pid = 0;
+		jmp pieceTogetherPIDLoop;
+	}
+	pieceTogetherPIDLoop:{
+		const char c = fgetc(file);
+		if(c >= '0' and c <= '9'){
+			pid = pid * 10 + c - 48;
+			jmp pieceTogetherPIDLoop;
+		}
+		jmp evaluatePID;
+	}
+	evaluatePID:{
+		if(hindered){
+			if(!pid or kill(pid, SIGUSR2) == KILL_FAIL){
+				format = "%s: could not notify receiver of broken protocol\n";
+			}
+			jmp emergencyExit;
+		}
+		if(!pid){
+			jmp bruteForceFindPID;
+		}
+		jmp findSharedMemory;
+	}
+	findSharedMemory:{
+		if((shmid = shmget(SHM_KEY, SHM_SIZE, 0600)) == SHMGET_FAIL){
+			format = "%s: could not find shared memory\n";
+			jmp emergencyExit;
+		}
+		jmp attachToSharedMemory;
+	}
+	attachToSharedMemory:{
+		if((shared = shmat(shmid, NULL, SHM_NONE)) == (void *)SHMAT_FAIL){
+			format = "%s: could not attach onto shared memory\n";
+			jmp emergencyExit;
+		}
+		jmp evalutateSharedAvailability;
+	}
+	evalutateSharedAvailability:{
+		if(*shared and kill(pid, SIGUSR2) == KILL_FAIL){
+			format = "%s: could not notify receiver of possibly broken protocol\n";
+			jmp emergencyExit;
+		}
+		jmp copyToShared;
+	}
+	copyToShared:{
+		copy(*(argument + 2), shared, shared + SHM_SIZE);
+		jmp sendSignal;
+	}
+	sendSignal:{
+		if(kill(pid, SIGUSR1) == KILL_FAIL){
+			format = "%s: could not transmit message\n";
+			jmp emergencyExit;
+		}
+		jmp success;
+	}
+	success:
+	emergencyExit:{
+		if(shared and shmdt(shared) == SHMDT_FAIL){
+			format = "%s: could not detach from shared memory\n";
+		}
+		if(popenFile){
+			pclose(popenFile);
+		}
+		if(fopenFile){
+			fclose(fopenFile);
+		}
+		if(format){
+			fprintf(stderr, format, *argument, *argument);
+		}
+		ret 0;
+	}
+}
+COPY(){
+	jmp copyloop;
+	copyloop:{
+		*current = *input;
+		if(inc current < wall and *(inc input)){
+			jmp copyloop;
+		}
+		*current = '\0';
+		ret;
+	}
+}
+
