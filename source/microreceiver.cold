@@ -34,23 +34,23 @@ SOFTWARE. */
 /*!}*/
 
 /*!defines:{*/
-	#define PROGRAM_NAME /*--*/ "microreceiver"
-	#define STAT_PATH /*-----*/ ("/tmp/" PROGRAM_NAME)
+	#define PROGRAM_NAME /*----*/ "microreceiver"
+	#define STAT_PATH /*-------*/ ("/tmp/" PROGRAM_NAME)
 
-	#define SHM_NONE /*------*/ (0)
+	#define SHM_NONE /*--------*/ (0)
 
-	#define STAT_FAIL /*-----*/ (-1)
-	#define SHMGET_FAIL /*---*/ (-1)
-	#define SHMAT_FAIL /*----*/ (-1)
-	#define SHMCTL_FAIL /*---*/ (-1)
-	#define SHMDT_FAIL /*----*/ (-1)
+	#define STAT_FAIL /*-------*/ (-1)
+	#define SHMGET_FAIL /*-----*/ (-1)
+	#define SHMAT_FAIL /*------*/ (-1)
+	#define SHMCTL_FAIL /*-----*/ (-1)
+	#define SHMDT_FAIL /*------*/ (-1)
 
-	#define SHM_KEY /*-------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
-	#define SHARED_SIZE /*---*/ (65536)
+	#define SHM_KEY /*---------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
+	#define SHARED_SIZE /*-----*/ (65536)
 
-	#define HANDLER() /*-----*/ local void handler(int signal)
-	#define SETUPIPC() /*----*/ local void setupIPC(void)
-	#define DELETESHM() /*---*/ local void deleteSHM(void)
+	#define HANDLER() /*-------*/ local void handler(int signal)
+	#define SHMCONNECT() /*----*/ local void shmConnect(void)
+	#define SHMDISCONNECT() /*-*/ local void shmDisconnect(void)
 /*!}*/
 
 /*!globals:{*/
@@ -62,8 +62,8 @@ SOFTWARE. */
 
 /*!functions:{*/
 	HANDLER();
-	SETUPIPC();
-	DELETESHM();
+	SHMCONNECT();
+	SHMDISCONNECT();
 /*!}*/
 
 int main(const int argumentAmount, const char *const *const argument){
@@ -79,12 +79,12 @@ int main(const int argumentAmount, const char *const *const argument){
 		sigaction(SIGUSR2, &sig, NULL);
 	}
 	programName = *argument;
-	setupIPC();
+	shmConnect();
 	processingSignal = false;
 	for(;;){
 		sleep(100);
 	}
-	deleteSHM();
+	shmDisconnect();
 	ret 0;
 }
 HANDLER(){
@@ -98,7 +98,7 @@ HANDLER(){
 	}
 	processSignal: switch signal over
 		to SIGINT:{
-			deleteSHM();
+			shmDisconnect();
 			exit(EXIT_SUCCESS);
 		}
 		to SIGUSR1:{
@@ -108,8 +108,8 @@ HANDLER(){
 			ret;
 		}
 		to SIGUSR2:{
-			deleteSHM();
-			setupIPC();
+			shmDisconnect();
+			shmConnect();
 			processingSignal = false;
 			ret;
 		}
@@ -118,7 +118,7 @@ HANDLER(){
 		}
 	end
 }
-SETUPIPC(){
+SHMCONNECT(){
 	def struct stat /*-*/ Stat;
 	FILE *file;
 	Stat s;
@@ -155,7 +155,7 @@ SETUPIPC(){
 		ret;
 	}
 }
-DELETESHM(){
+SHMDISCONNECT(){
 	jmp markForDeletion;
 	markForDeletion:{
 		if(shmctl(shmid, IPC_RMID, NULL) == SHMCTL_FAIL){
