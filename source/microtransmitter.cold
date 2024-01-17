@@ -34,6 +34,8 @@ SOFTWARE. */
 /*!defines:{*/
 	#define EOT /*------------------*/ (4)
 
+	#define SHM_KEY /*--------------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
+	#define SHM_SIZE /*-------------*/ (65536)
 	#define SHM_NONE /*-------------*/ (0)
 
 	#define STAT_FAIL /*------------*/ (-1)
@@ -41,9 +43,6 @@ SOFTWARE. */
 	#define SHMAT_FAIL /*-----------*/ (-1)
 	#define KILL_FAIL /*------------*/ (-1)
 	#define SHMDT_FAIL /*-----------*/ (-1)
-
-	#define SHM_KEY /*--------------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
-	#define SHM_SIZE /*-------------*/ (65536)
 
 	#define COPY() /*---------------*/ local void copy(const char *input, char *current, const char *const wall)
 
