@@ -137,9 +137,9 @@ SETUPIPC(){
 			fprintf(stderr, "%s: could not generate shared memory key\n", programName);
 			ret;
 		}
-		jmp generateSharedMemoryKey;
+		jmp generateSharedMemoryID;
 	}
-	generateSharedMemoryKey:{
+	generateSharedMemoryID:{
 		if((shmid = shmget(SHM_KEY, SHARED_SIZE, 0600 | IPC_CREAT)) == SHMGET_FAIL){
 			fprintf(stderr, "%s: could not create shared memory segment\n", programName);
 			ret;
