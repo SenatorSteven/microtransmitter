@@ -37,8 +37,6 @@ SOFTWARE. */
 	#define PROGRAM_NAME /*----*/ "microreceiver"
 	#define STAT_PATH /*-------*/ ("/tmp/" PROGRAM_NAME)
 
-	#define SHM_NONE /*--------*/ (0)
-
 	#define STAT_FAIL /*-------*/ (-1)
 	#define SHMGET_FAIL /*-----*/ (-1)
 	#define SHMAT_FAIL /*------*/ (-1)
@@ -47,6 +45,7 @@ SOFTWARE. */
 
 	#define SHM_KEY /*---------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0xfff00) | 0x45)
 	#define SHARED_SIZE /*-----*/ (65536)
+	#define SHM_NONE /*--------*/ (0)
 
 	#define HANDLER() /*-------*/ local void handler(int signal)
 	#define SHMCONNECT() /*----*/ local void shmConnect(void)
