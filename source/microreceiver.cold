@@ -34,8 +34,8 @@ SOFTWARE. */
 /*!}*/
 
 /*!defines:{*/
-	#define PRETTY_NAME /*---*/ "microreceiver"
-	#define STAT_FILENAME /*-*/ ("/tmp/" PRETTY_NAME)
+	#define PROGRAM_NAME /*--*/ "microreceiver"
+	#define STAT_PATH /*-----*/ ("/tmp/" PROGRAM_NAME)
 
 	#define SHM_NONE /*------*/ (0)
 
@@ -124,8 +124,8 @@ SETUPIPC(){
 	Stat s;
 	jmp createKeyFile;
 	createKeyFile:{
-		if(!(file = fopen(STAT_FILENAME, "w"))){
-			fprintf(stderr, "%s: could not create %s file\n", programName, STAT_FILENAME);
+		if(!(file = fopen(STAT_PATH, "w"))){
+			fprintf(stderr, "%s: could not create %s file\n", programName, STAT_PATH);
 			ret;
 		}
 		fprintf(file, "%u\n", getpid());
@@ -133,7 +133,7 @@ SETUPIPC(){
 		jmp getKeyFileStat;
 	}
 	getKeyFileStat:{
-		if(stat(STAT_FILENAME, &s) == STAT_FAIL){
+		if(stat(STAT_PATH, &s) == STAT_FAIL){
 			fprintf(stderr, "%s: could not generate shared memory key\n", programName);
 			ret;
 		}
@@ -141,7 +141,7 @@ SETUPIPC(){
 	}
 	generateSharedMemoryKey:{
 		if((shmid = shmget(SHM_KEY, SHARED_SIZE, 0600 | IPC_CREAT)) == SHMGET_FAIL){
-			fprintf(stderr, "%s: shared memory is not available\n", programName);
+			fprintf(stderr, "%s: could not create shared memory segment\n", programName);
 			ret;
 		}
 		jmp attachToSharedMemory;
@@ -160,14 +160,15 @@ DELETESHM(){
 	markForDeletion:{
 		if(shmctl(shmid, IPC_RMID, NULL) == SHMCTL_FAIL){
 			fprintf(stderr, "%s: could not mark shared memory for deletion\n", programName);
+			ret;
 		}
 		jmp detach;
 	}
 	detach:{
 		if(shmdt(shared) == SHMDT_FAIL){
 			fprintf(stderr, "%s: could not detach from shared memory\n", programName);
+			ret;
 		}
 		ret;
 	}
 }
-
