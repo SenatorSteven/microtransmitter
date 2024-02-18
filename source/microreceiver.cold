@@ -123,8 +123,8 @@ SHMCONNECT(){
 	Stat s;
 	jmp createKeyFile;
 	createKeyFile:{
-		if(!(file = fopen(STAT_PATH, "w"))){
-			fprintf(stderr, "%s: could not create %s file\n", programName, STAT_PATH);
+		if(!(file = fopen(STAT_PATH, "w")) and !(file = fopen(STAT_PATH, "r"))){
+			fprintf(stderr, "%s: could neither create nor read %s file\n", programName, STAT_PATH);
 			ret;
 		}
 		fprintf(file, "%u\n", getpid());
