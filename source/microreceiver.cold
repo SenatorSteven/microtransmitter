@@ -157,14 +157,14 @@ SHMCONNECT(){
 SHMDISCONNECT(){
 	jmp markForDeletion;
 	markForDeletion:{
-		if(shmctl(shmid, IPC_RMID, NULL) == SHMCTL_FAIL){
+		if(shmid != SHMGET_FAIL and shmctl(shmid, IPC_RMID, NULL) == SHMCTL_FAIL){
 			fprintf(stderr, "%s: could not mark shared memory for deletion\n", programName);
 			ret;
 		}
 		jmp detach;
 	}
 	detach:{
-		if(shmdt(shared) == SHMDT_FAIL){
+		if(sharedStart != (void *)SHMAT_FAIL and shmdt(shared) == SHMDT_FAIL){
 			fprintf(stderr, "%s: could not detach from shared memory\n", programName);
 			ret;
 		}
