@@ -24,48 +24,29 @@
 
 #!/bin/bash
 
-DEBUG=true
+DEBUG=false
 
-asm="output/asm"
+name="microtransmitter"
+libraries="-D_POSIX_C_SOURCE=199309L"
 files=""
 
 compileFile(){
-	gcc -x c \
-		-S \
-		-std=c89 \
-		-Os \
-		-Waddress -Warray-bounds=1 -Wbool-compare -Wbool-operation -Wchar-subscripts -Wduplicate-decl-specifier -Wformat -Wformat-overflow -Wformat-truncation -Wint-in-bool-context -Wimplicit -Wimplicit-int -Wimplicit-function-declaration -Winit-self -Wlogical-not-parentheses -Wmain -Wmaybe-uninitialized -Wmemset-elt-size -Wmemset-transposed-args -Wmissing-attributes -Wmissing-braces -Wmultistatement-macros -Wnarrowing -Wnonnull -Wnonnull-compare -Wopenmp-simd -Wparentheses -Wpointer-sign -Wrestrict -Wreturn-type -Wsequence-point -Wsign-compare -Wsizeof-pointer-div -Wsizeof-pointer-memaccess -Wstrict-aliasing -Wstrict-overflow=1 -Wswitch -Wtautological-compare -Wtrigraphs -Wuninitialized -Wunknown-pragmas -Wunused-function -Wunused-label -Wunused-value -Wunused-variable -Wvolatile-register-var \
-		-Wclobbered -Wcast-function-type -Wempty-body -Wignored-qualifiers -Wimplicit-fallthrough=3 -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized -Wshift-negative-value -Wunused-parameter -Wunused-but-set-parameter \
-		-Wpedantic \
-		-D_POSIX_C_SOURCE=199309L \
-		-o "$asm/$1.s" "source/$1.cold"
-	files="$files $asm/$1.s"
+	gcc -Waddress -Warray-bounds=1 -Wbool-compare -Wbool-operation -Wchar-subscripts -Wduplicate-decl-specifier -Wformat -Wformat-overflow -Wformat-truncation -Wint-in-bool-context -Wimplicit -Wimplicit-int -Wimplicit-function-declaration -Winit-self -Wlogical-not-parentheses -Wmain -Wmaybe-uninitialized -Wmemset-elt-size -Wmemset-transposed-args -Wmissing-attributes -Wmissing-braces -Wmultistatement-macros -Wnarrowing -Wnonnull -Wnonnull-compare -Wopenmp-simd -Wparentheses -Wpointer-sign -Wrestrict -Wreturn-type -Wsequence-point -Wsign-compare -Wsizeof-pointer-div -Wsizeof-pointer-memaccess -Wstrict-aliasing -Wstrict-overflow=1 -Wswitch -Wtautological-compare -Wtrigraphs -Wuninitialized -Wunknown-pragmas -Wunused-function -Wunused-label -Wunused-value -Wunused-variable -Wvolatile-register-var -Wclobbered -Wcast-function-type -Wempty-body -Wignored-qualifiers -Wimplicit-fallthrough=3 -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized -Wshift-negative-value -Wunused-parameter -Wunused-but-set-parameter -Wpedantic \
+	    -x c -S -std=c89 -Os $libraries -o "output/asm/$1.s" "source/$1.cold"
+
+	files="$files output/asm/$1.s"
+	return
 }
 
 cd $(dirname $0)
-if [ ! -f compile.sh ]; then
-	cd $(cd $(dirname $BASH_SOURCE) && pwd)
-fi
-if [ -f compile.sh ]; then
-	if [ -d output ]; then
-		rm -r output
-	fi
-	mkdir output $asm
-	if [ -d $asm ]; then
-		programName="microtransmitter"
-		compileFile $programName
-		gcc $files -o output/$programName
-		files=""
-		programName="microreceiver"
-		compileFile $programName
-		gcc $files -o output/$programName
-		if ! $DEBUG; then
-			rm -r $asm
-		fi
-		printf "#!/bin/bash\n\ncd \$(dirname \$0)\nif [ ! -f $programName ]; then\n\tcd \$(cd \$(dirname \$BASH_SOURCE) && pwd)\nfi\n./$programName\nexit 0" > output/run
-		chmod +x output/run
-	else
-		printf "could not write executable to disk"
-	fi
-fi
+[ ! -f compile.sh ] && { cd $(cd $(dirname $BASH_SOURCE) && pwd);                } || :
+[ ! -f compile.sh ] && { printf "could not find compile.sh directory\n"; exit 0; } || :
+[   -d output     ] && { rm -r output;                                           } || :
+mkdir output output/asm
+[ ! -d output/asm ] && { printf "could not write executable to disk\n";  exit 1; } || :
+compileFile $name
+gcc $files $libraries -o output/$name
+[ $DEBUG = false  ] && { rm -r output/asm;                                       } || :
+printf "#!/bin/bash\n\ncd \$(dirname \$0)\n[ ! -f $name ] && cd \$(cd \$(dirname \$BASH_SOURCE) && pwd) || :\n./$name \"\$@\"\nexit 0\n" > output/run
+chmod +x output/run
 exit 0
