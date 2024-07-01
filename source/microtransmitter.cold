@@ -38,11 +38,11 @@ SOFTWARE. */
 	#define SHM_SIZE /*-------------*/ (65536)
 	#define SHM_NONE /*-------------*/ (0)
 
-	#define STAT_FAIL /*------------*/ (-1)
-	#define SHMGET_FAIL /*----------*/ (-1)
-	#define SHMAT_FAIL /*-----------*/ (-1)
-	#define KILL_FAIL /*------------*/ (-1)
-	#define SHMDT_FAIL /*-----------*/ (-1)
+	#define STAT_FAILURE /*---------*/ (-1)
+	#define SHMGET_FAILURE /*-------*/ (-1)
+	#define SHMAT_FAILURE /*--------*/ ((void *)-1)
+	#define KILL_FAILURE /*---------*/ (-1)
+	#define SHMDT_FAILURE /*--------*/ (-1)
 
 	#define COPY() /*---------------*/ local void copy(const char *input, char *current, const char *const wall)
 
@@ -76,7 +76,7 @@ int main(const int argumentAmount, const char *const *const argument){
 		jmp getKeyFileStat;
 	}
 	getKeyFileStat:{
-		if(stat(path, &s) == STAT_FAIL){
+		if(stat(path, &s) == STAT_FAILURE){
 			jmp bruteForceFindPID;
 		}
 		jmp findPID;
@@ -111,7 +111,7 @@ int main(const int argumentAmount, const char *const *const argument){
 	}
 	evaluatePID:{
 		if(hindered){
-			if(!pid or kill(pid, SIGUSR2) == KILL_FAIL){
+			if(!pid or kill(pid, SIGUSR2) == KILL_FAILURE){
 				format = "%s: could not notify receiver of broken protocol\n";
 			}
 			jmp emergencyExit;
@@ -122,21 +122,21 @@ int main(const int argumentAmount, const char *const *const argument){
 		jmp findSharedMemory;
 	}
 	findSharedMemory:{
-		if((shmid = shmget(SHM_KEY, SHM_SIZE, 0600)) == SHMGET_FAIL){
+		if((shmid = shmget(SHM_KEY, SHM_SIZE, 0600)) == SHMGET_FAILURE){
 			format = "%s: could not find shared memory\n";
 			jmp emergencyExit;
 		}
 		jmp attachToSharedMemory;
 	}
 	attachToSharedMemory:{
-		if((shared = shmat(shmid, NULL, SHM_NONE)) == (void *)SHMAT_FAIL){
+		if((shared = shmat(shmid, NULL, SHM_NONE)) == SHMAT_FAILURE){
 			format = "%s: could not attach onto shared memory\n";
 			jmp emergencyExit;
 		}
 		jmp evalutateSharedAvailability;
 	}
 	evalutateSharedAvailability:{
-		if(*shared and kill(pid, SIGUSR2) == KILL_FAIL){
+		if(*shared and kill(pid, SIGUSR2) == KILL_FAILURE){
 			format = "%s: could not notify receiver of possibly broken protocol\n";
 			jmp emergencyExit;
 		}
@@ -147,7 +147,7 @@ int main(const int argumentAmount, const char *const *const argument){
 		jmp sendSignal;
 	}
 	sendSignal:{
-		if(kill(pid, SIGUSR1) == KILL_FAIL){
+		if(kill(pid, SIGUSR1) == KILL_FAILURE){
 			format = "%s: could not transmit message\n";
 			jmp emergencyExit;
 		}
@@ -155,7 +155,7 @@ int main(const int argumentAmount, const char *const *const argument){
 	}
 	success:
 	emergencyExit:{
-		if(shared and shmdt(shared) == SHMDT_FAIL){
+		if(shared and shmdt(shared) == SHMDT_FAILURE){
 			format = "%s: could not detach from shared memory\n";
 		}
 		if(popenFile){
