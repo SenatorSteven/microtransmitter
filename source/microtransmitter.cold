@@ -1,3 +1,4 @@
+
 /*! microtransmitter.cold
 
 MIT License
@@ -23,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 /*!includes:{*/
-	#include <signal.h>
+	#include <pthread.h>
 	#include <stdint.h>
 	#include <stdio.h>
 	#include <sys/shm.h>
@@ -32,22 +33,42 @@ SOFTWARE. */
 /*!}*/
 
 /*!defines:{*/
-	#define EOT /*------------------*/ (4)
+	#define STAT_FAILURE /*------------------*/ (-1)
+	#define SHMGET_FAILURE /*----------------*/ (-1)
+	#define SHMAT_FAILURE /*-----------------*/ ((void *)-1)
+	#define KILL_FAILURE /*------------------*/ (-1)
+	#define SHMDT_FAILURE /*-----------------*/ (-1)
 
-	#define SHM_KEY /*--------------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0x000fff00) | 0x00000045)
-	#define SHM_SIZE /*-------------*/ (65536)
-	#define SHM_NONE /*-------------*/ (0)
+	#define PTHREAD_MUTEX_TRYLOCK_SUCCESS /*-*/ (0)
+	#define PTHREAD_MUTEX_UNLOCK_SUCCESS /*--*/ (0)
+	#define PTHREAD_COND_SIGNAL_SUCCESS /*---*/ (0)
 
-	#define STAT_FAILURE /*---------*/ (-1)
-	#define SHMGET_FAILURE /*-------*/ (-1)
-	#define SHMAT_FAILURE /*--------*/ ((void *)-1)
-	#define KILL_FAILURE /*---------*/ (-1)
-	#define SHMDT_FAILURE /*--------*/ (-1)
+	#define SHM_KEY /*-----------------------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0x000fff00) | 0x00000045)
+	#define SHM_SIZE /*----------------------*/ (65536)
+	#define SHM_HEADER_SIZE /*---------------*/ (sizeof(pthread_mutex_t) + sizeof(pthread_cond_t) + sizeof(uint8))
+	#define SHM_FOOTER_SIZE /*---------------*/ (2)
+	#define SHM_BODY_SIZE /*-----------------*/ (SHM_SIZE - SHM_HEADER_SIZE - SHM_FOOTER_SIZE)
+	#define SHM_NONE /*----------------------*/ (0)
 
-	#define COPY() /*---------------*/ local void copy(const char *input, char *current, const char *const wall)
+	#define EMPTY_SHARED_STATUS /*-----------*/ (0)
+	#define FULL_SHARED_STATUS /*------------*/ (1)
 
-	#define ARRAY_SIZE(a) /*--------*/ (sizeof(a) / sizeof(*a))
-	#define STRING_ARRAY_SIZE(a) /*-*/ (ARRAY_SIZE(a) - 1)
+	#define EOT /*---------------------------*/ (4)
+
+	#define COPY() /*------------------------*/ local uint copy(const uint8 *input, void *const outputStart, const uint size)
+/*!}*/
+
+/*!defs:{*/
+	def struct stat /*-*/ Stat;
+/*!}*/
+
+/*!globals:{*/
+	local const char * /*------*/ format;
+	local Stat /*--------------*/ s;
+	local int /*---------------*/ shmid;
+	local uint8 * /*-----------*/ sharedStart;
+	local pthread_mutex_t * /*-*/ mutex;
+	local pthread_cond_t * /*--*/ cond;
 /*!}*/
 
 /*!functions:{*/
@@ -55,114 +76,79 @@ SOFTWARE. */
 /*!}*/
 
 int main(const int argumentAmount, const char *const *const argument){
-	def struct stat /*-*/ Stat;
-	const char *format = NULL;
-	char path[STRING_ARRAY_SIZE("/tmp/") + 257] = "/tmp/";
-	Stat s;
-	FILE *fopenFile = NULL;
-	FILE *popenFile = NULL;
-	FILE *file;
-	bool hindered = false;
-	int64 shmid;
-	uint64 pid;
-	char *shared = NULL;
+	char path[lengthof("/tmp/") + 256] = "/tmp/";
+	format = NULL;
+	shmid = SHMGET_FAILURE;
+	sharedStart = SHMAT_FAILURE;
 	jmp getProgramArguments;
 	getProgramArguments:{
+		uint bytesWritten;
 		if(argumentAmount != 3 or !**(argument + 1) or !**(argument + 2)){
 			format = "%s: usage: %s [program name] [format]\n";
 			jmp emergencyExit;
 		}
-		copy(*(argument + 1), path + STRING_ARRAY_SIZE("/tmp/"), path + STRING_ARRAY_SIZE("/tmp/") + 257);
+		bytesWritten = copy((void *)*(argument + 1), path + lengthof("/tmp/"), 255);
+		*(path + lengthof("/tmp/") + bytesWritten) = '\0';
 		jmp getKeyFileStat;
 	}
 	getKeyFileStat:{
 		if(stat(path, &s) == STAT_FAILURE){
-			jmp bruteForceFindPID;
-		}
-		jmp findPID;
-	}
-	bruteForceFindPID:{
-		char pidof[STRING_ARRAY_SIZE("pidof ") + 257] = "pidof ";
-		copy(*(argument + 1), pidof + STRING_ARRAY_SIZE("pidof "), pidof + STRING_ARRAY_SIZE("pidof ") + 257);
-		if(!(popenFile = popen(pidof, "r"))){
-			format = "%s: could not notify receiver of broken protocol\n";
+			format = "%s: could not send message due to broken protocol\n";
 			jmp emergencyExit;
-		}
-		file = popenFile;
-		pid = 0;
-		hindered = true;
-		jmp pieceTogetherPIDLoop;
-	}
-	findPID:{
-		if(!(fopenFile = fopen(path, "r"))){
-			jmp bruteForceFindPID;
-		}
-		file = fopenFile;
-		pid = 0;
-		jmp pieceTogetherPIDLoop;
-	}
-	pieceTogetherPIDLoop:{
-		const char c = fgetc(file);
-		if(c >= '0' and c <= '9'){
-			pid = pid * 10 + c - 48;
-			jmp pieceTogetherPIDLoop;
-		}
-		jmp evaluatePID;
-	}
-	evaluatePID:{
-		if(hindered){
-			if(!pid or kill(pid, SIGUSR2) == KILL_FAILURE){
-				format = "%s: could not notify receiver of broken protocol\n";
-			}
-			jmp emergencyExit;
-		}
-		if(!pid){
-			jmp bruteForceFindPID;
 		}
 		jmp findSharedMemory;
 	}
 	findSharedMemory:{
 		if((shmid = shmget(SHM_KEY, SHM_SIZE, 0600)) == SHMGET_FAILURE){
-			format = "%s: could not find shared memory\n";
+			format = "%s: could not find open shared memory\n";
 			jmp emergencyExit;
 		}
 		jmp attachToSharedMemory;
 	}
 	attachToSharedMemory:{
-		if((shared = shmat(shmid, NULL, SHM_NONE)) == SHMAT_FAILURE){
+		if((sharedStart = shmat(shmid, NULL, SHM_NONE)) == SHMAT_FAILURE){
 			format = "%s: could not attach onto shared memory\n";
 			jmp emergencyExit;
 		}
+		mutex = (void *)sharedStart;
+		cond = (void *)(sharedStart + sizeof(pthread_mutex_t));
 		jmp evalutateSharedAvailability;
 	}
 	evalutateSharedAvailability:{
-		if(*shared and kill(pid, SIGUSR2) == KILL_FAILURE){
-			format = "%s: could not notify receiver of possibly broken protocol\n";
+		if(*(sharedStart + SHM_HEADER_SIZE - sizeof(uint8)) == FULL_SHARED_STATUS){
+			format = "%s: shared memory is occupied\n";
+			jmp emergencyExit;
+		}
+		if(pthread_mutex_trylock(mutex) != PTHREAD_MUTEX_TRYLOCK_SUCCESS){
+			format = "%s: could not lock shared memory mutex\n";
 			jmp emergencyExit;
 		}
 		jmp copyToShared;
 	}
 	copyToShared:{
-		copy(*(argument + 2), shared, shared + SHM_SIZE);
+		uint8 *const sharedBody = sharedStart + SHM_HEADER_SIZE;
+		uint bytesWritten;
+		*(sharedBody - sizeof(uint8)) = FULL_SHARED_STATUS;
+		bytesWritten = copy((void *)*(argument + 2), sharedBody, SHM_BODY_SIZE);
+		*(sharedBody + bytesWritten) = '\0';
+		*(sharedBody + bytesWritten + sizeof(uint8)) = EOT;
 		jmp sendSignal;
 	}
 	sendSignal:{
-		if(kill(pid, SIGUSR1) == KILL_FAILURE){
-			format = "%s: could not transmit message\n";
+		if(pthread_cond_signal(cond) != PTHREAD_COND_SIGNAL_SUCCESS){
+			format = "%s: could not signal shared memory thread\n";
+			jmp emergencyExit;
+		}
+		if(pthread_mutex_unlock(mutex) != PTHREAD_MUTEX_UNLOCK_SUCCESS){
+			format = "%s: could not unlock shared memory mutex\n";
 			jmp emergencyExit;
 		}
 		jmp success;
 	}
 	success:
 	emergencyExit:{
-		if(shared and shmdt(shared) == SHMDT_FAILURE){
+		if(sharedStart != SHMAT_FAILURE and shmdt(sharedStart) == SHMDT_FAILURE){
 			format = "%s: could not detach from shared memory\n";
-		}
-		if(popenFile){
-			pclose(popenFile);
-		}
-		if(fopenFile){
-			fclose(fopenFile);
 		}
 		if(format){
 			fprintf(stderr, format, *argument, *argument);
@@ -171,14 +157,14 @@ int main(const int argumentAmount, const char *const *const argument){
 	}
 }
 COPY(){
-	jmp copyloop;
-	copyloop:{
+	uint8 *current = outputStart;
+	uint8 *const wall = current + size;
+	jmp loop;
+	loop:{
 		*current = *input;
 		if(inc current < wall and *(inc input)){
-			jmp copyloop;
+			jmp loop;
 		}
-		*current = '\0';
-		*(inc current) = EOT;
-		ret;
+		ret inc current - (uint8 *)outputStart;
 	}
 }
