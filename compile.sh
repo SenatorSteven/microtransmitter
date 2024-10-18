@@ -27,7 +27,7 @@
 DEBUG=false
 
 name="microtransmitter"
-libraries="-D_POSIX_C_SOURCE=199309L"
+libraries="-D_POSIX_C_SOURCE=200112L"
 files=""
 
 compileFile(){
