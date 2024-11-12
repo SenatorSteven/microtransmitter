@@ -43,6 +43,7 @@ SOFTWARE. */
 	#define PTHREAD_MUTEX_UNLOCK_SUCCESS /*--*/ (0)
 	#define PTHREAD_COND_SIGNAL_SUCCESS /*---*/ (0)
 
+	#define STAT_PATH /*---------------------*/ "/dev/shm/"
 	#define SHM_KEY /*-----------------------*/ (((s.st_dev << 20) & 0xfff00000) | ((s.st_ino << 8) & 0x000fff00) | 0x00000045)
 	#define SHM_SIZE /*----------------------*/ (65536)
 	#define SHM_HEADER_SIZE /*---------------*/ (sizeof(pthread_mutex_t) + sizeof(pthread_cond_t) + sizeof(uint8))
@@ -79,7 +80,7 @@ SOFTWARE. */
 /*!}*/
 
 int main(const int argumentAmount, const char *const *const argument){
-	char path[lengthof("/tmp/") + 256] = "/tmp/";
+	char path[lengthof(STAT_PATH) + 256] = STAT_PATH;
 	format = NULL;
 	shmid = SHMGET_FAILURE;
 	sharedStart = SHMAT_FAILURE;
@@ -90,8 +91,8 @@ int main(const int argumentAmount, const char *const *const argument){
 			format = HELP_FORMAT;
 			jmp emergencyExit;
 		}
-		bytesWritten = copy((void *)*(argument + 1), path + lengthof("/tmp/"), 255);
-		*(path + lengthof("/tmp/") + bytesWritten) = '\0';
+		bytesWritten = copy((void *)*(argument + 1), path + lengthof(STAT_PATH), 255);
+		*(path + lengthof(STAT_PATH) + bytesWritten) = '\0';
 		jmp getKeyFileStat;
 	}
 	getKeyFileStat:{
