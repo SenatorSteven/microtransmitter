@@ -29,7 +29,7 @@ SOFTWARE. */
 	#include <stdio.h>
 	#include <sys/shm.h>
 	#include <sys/stat.h>
-	#include "cold/cold.hold"
+	#include "../cold/cold.hold"
 /*!}*/
 
 /*!defines:{*/
