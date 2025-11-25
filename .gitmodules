@@ -1,3 +1,6 @@
 [submodule "headers/cold"]
 	path = headers/cold
 	url = https://github.com/SenatorSteven/cold
+[submodule "headers/cold1"]
+	path = headers/cold1
+	url = https://github.com/SenatorSteven/cold
