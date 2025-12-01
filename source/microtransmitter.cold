@@ -25,6 +25,7 @@ SOFTWARE. */
 
 /*!includes:{*/
 	#define POSIX_C_SOURCE /*-*/ (200112L)
+
 	#include <pthread.h>
 	#include <stdint.h>
 	#include <stdio.h>
