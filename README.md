@@ -24,5 +24,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. -->
 
 # [ˈmaɪ.kroʊ ˈtræns.mɪɾɚ]
-IPC message dispatcher for micro- programs, paired with basic receiver
+IPC message dispatcher paired with basic receiver
 

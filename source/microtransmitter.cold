@@ -179,3 +179,4 @@ COPY(){
 		ret current - (uint8 *)outputStart;
 	}
 }
+

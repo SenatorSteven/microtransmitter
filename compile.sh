@@ -26,31 +26,26 @@
 #!/bin/bash
 
 NAME="compile.sh";
-TAB="\t";
 true=1;
 false=0;
 
 function main(){
-	[ $true           ] && { local DEBUG=false;                                               } || :;
-	[ $true           ] && { local name="microtransmitter";                                   } || :;
-	[ $true           ] && { local files="";                                                  } || :;
-	[ $true           ] && { cd $(dirname $0);                                                } || :;
-	[ ! -f compile.sh ] && { cd $(cd $(dirname $BASH_SOURCE) && pwd);                         } || :;
-	[ ! -f compile.sh ] && { printf "$NAME: could not find compile.sh directory\n"; return 1; } || :;
-	[   -d output     ] && { rm -r output;                                                    } || :;
-	[ $true           ] && { mkdir output output/asm;                                         } || :;
-	[ ! -d output/asm ] && { printf "$NAME: could not write executable to disk\n";  return 1; } || :;
-	[ $true           ] && { compileFile $name;                                               } || :;
-	[ $true           ] && { gcc $files $libraries -o output/$name;                           } || :;
-	[ $DEBUG = false  ] && { rm -r output/asm;                                                } || :;
-	[ $true           ] && {                                                        return 0; } || :;
-}
-function compileFile(){
-	gcc -Waddress -Warray-bounds=1 -Wbool-compare -Wbool-operation -Wchar-subscripts -Wduplicate-decl-specifier -Wformat -Wformat-overflow -Wformat-truncation -Wint-in-bool-context -Wimplicit -Wimplicit-int -Wimplicit-function-declaration -Winit-self -Wlogical-not-parentheses -Wmain -Wmaybe-uninitialized -Wmemset-elt-size -Wmemset-transposed-args -Wmissing-attributes -Wmissing-braces -Wmultistatement-macros -Wnarrowing -Wnonnull -Wnonnull-compare -Wopenmp-simd -Wparentheses -Wpointer-sign -Wrestrict -Wreturn-type -Wsequence-point -Wsign-compare -Wsizeof-pointer-div -Wsizeof-pointer-memaccess -Wstrict-aliasing -Wstrict-overflow=1 -Wswitch -Wtautological-compare -Wtrigraphs -Wuninitialized -Wunknown-pragmas -Wunused-function -Wunused-label -Wunused-value -Wunused-variable -Wvolatile-register-var -Wclobbered -Wcast-function-type -Wempty-body -Wignored-qualifiers -Wimplicit-fallthrough=3 -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized -Wshift-negative-value -Wunused-parameter -Wunused-but-set-parameter -Wpedantic \
-		-x c -S -std=c89 -Os $libraries -o "output/asm/$1.s" "source/$1.cold"
-
-	files="$files output/asm/$1.s"
-	return
+	[ $true        ] && { local name="microtransmitter";                                   } || :;
+	[ $true        ] && { local folder="/tmp/$name";                                       } || :;
+	[ $true        ] && { local libraries="";                                              } || :;
+	[ $true        ] && { local parameters=();                                             } || :;
+	[ $true        ] && { cd "${BASH_SOURCE%/*}";                                          } || :;
+	[ ! -f "$NAME" ] && { printf "$NAME: could not find $NAME directory\n" 1>&2; return 1; } || :;
+	[ $true        ] && { rm -rf "$folder";                                                } || :;
+	[ $true        ] && { parameters+=(header-folder "headers");                           } || :;
+	[ $true        ] && { parameters+=(source-folder "source");                            } || :;
+	[ $true        ] && { parameters+=(debug-folder "$folder/debug");                      } || :;
+	[ $true        ] && { parameters+=(output-folder "$folder/output");                    } || :;
+	[ $true        ] && { parameters+=(record-folder "$folder/record");                    } || :;
+	[ $true        ] && { parameters+=(mains "$name");                                     } || :;
+	[ $true        ] && { parameters+=(executables "$name");                               } || :;
+	[ $true        ] && { parameters+=(libraries "$libraries");                            } || :;
+	[ $true        ] && { ./compile/compile.sh "${parameters[@]}" "$@";          return 0; } || :;
 }
 
 main "$@";
