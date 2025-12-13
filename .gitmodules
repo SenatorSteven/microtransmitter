@@ -1,6 +1,6 @@
-[submodule "compile"]
-	path = compile
-	url = https://github.com/SenatorSteven/compile
 [submodule "headers/cold"]
 	path = headers/cold
 	url = https://github.com/SenatorSteven/cold
+[submodule "compile"]
+	path = compile
+	url = https://github.com/SenatorSteven/compile
