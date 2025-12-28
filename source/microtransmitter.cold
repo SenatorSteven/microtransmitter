@@ -31,7 +31,7 @@ SOFTWARE. */
 	#include <stdio.h>
 	#include <sys/shm.h>
 	#include <sys/stat.h>
-	#include "../headers/cold/cold.hold"
+	#include "headers/cold/cold.hold"
 /*!}*/
 
 /*!defines:{*/
