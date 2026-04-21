@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. */
 
 /*!includes:{*/
-	#define _POSIX_C_SOURCE /*-*/ (200112L)
-
 	#include <pthread.h>
 	#include <stdint.h>
 	#include <stdio.h>
@@ -149,9 +147,8 @@ int main(const int argumentAmount, const char *const *const argument){
 			format = "%s: could not unlock shared memory mutex of %s\n";
 			jmp emergencyExit;
 		}
-		jmp success;
+		jmp emergencyExit;
 	}
-	success:
 	emergencyExit:{
 		if(sharedStart != SHMAT_FAILURE and shmdt(sharedStart) == SHMDT_FAILURE){
 			format = "%s: could not detach from shared memory of %s\n";
